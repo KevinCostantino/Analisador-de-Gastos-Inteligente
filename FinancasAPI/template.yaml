@@ -1,0 +1,257 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  FinancasAPI
+  
+  API para análise automática de gastos usando AWS Comprehend
+
+# Globals
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: dotnet8
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        TRANSACTIONS_TABLE: !Ref TransactionsTable
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    Description: Environment name
+
+Resources:
+
+  # DynamoDB Table
+  TransactionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-Transactions"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: Id
+          AttributeType: S
+        - AttributeName: UserId
+          AttributeType: S
+        - AttributeName: CreatedAt
+          AttributeType: S
+        - AttributeName: Month
+          AttributeType: S
+      KeySchema:
+        - AttributeName: Id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserId-CreatedAt-Index
+          KeySchema:
+            - AttributeName: UserId
+              KeyType: HASH
+            - AttributeName: CreatedAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: UserId-Month-Index
+          KeySchema:
+            - AttributeName: UserId
+              KeyType: HASH
+            - AttributeName: Month
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: FinancasAPI
+
+  # Lambda Functions
+  ExpenseAnalyzerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/Functions/ExpenseAnalyzerFunction/
+      Handler: FinancasAPI::FinancasAPI.Functions.ExpenseAnalyzerFunction::FunctionHandler
+      Description: Analisa descrições de gastos usando AWS Comprehend
+      Environment:
+        Variables:
+          TRANSACTIONS_TABLE: !Ref TransactionsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TransactionsTable
+        - Statement:
+          - Effect: Allow
+            Action:
+              - comprehend:DetectEntities
+              - comprehend:DetectKeyPhrases
+              - comprehend:DetectSentiment
+            Resource: "*"
+      Events:
+        AnalyzeExpense:
+          Type: Api
+          Properties:
+            RestApiId: !Ref FinancasApi
+            Path: /analyze-expense
+            Method: post
+        AnalyzeExpenseOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref FinancasApi
+            Path: /analyze-expense
+            Method: options
+
+  MonthlyReportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/Functions/MonthlyReportFunction/
+      Handler: FinancasAPI::FinancasAPI.Functions.MonthlyReportFunction::FunctionHandler
+      Description: Gera relatórios mensais de gastos
+      Environment:
+        Variables:
+          TRANSACTIONS_TABLE: !Ref TransactionsTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref TransactionsTable
+      Events:
+        MonthlyReportGet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref FinancasApi
+            Path: /monthly-report
+            Method: get
+        MonthlyReportPost:
+          Type: Api
+          Properties:
+            RestApiId: !Ref FinancasApi
+            Path: /monthly-report
+            Method: post
+        MonthlyReportOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref FinancasApi
+            Path: /monthly-report
+            Method: options
+
+  # API Gateway
+  FinancasApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-API"
+      StageName: !Ref Environment
+      Description: API para análise de gastos financeiros
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-User-Id'"
+        AllowOrigin: "'*'"
+        MaxAge: "'600'"
+        AllowCredentials: false
+      GatewayResponses:
+        DEFAULT_4XX:
+          ResponseTemplates:
+            "application/json": '{"message":"$context.error.messageString","requestId":"$context.requestId"}'
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: "'*'"
+        DEFAULT_5XX:
+          ResponseTemplates:
+            "application/json": '{"message":"Internal Server Error","requestId":"$context.requestId"}'
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: "'*'"
+      TracingConfig:
+        TracingEnabled: true
+      Tags:
+        Environment: !Ref Environment
+        Application: FinancasAPI
+
+  # CloudWatch Log Groups
+  ExpenseAnalyzerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ExpenseAnalyzerFunction}"
+      RetentionInDays: 14
+
+  MonthlyReportLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${MonthlyReportFunction}"
+      RetentionInDays: 14
+
+  # IAM Role for Enhanced Monitoring (Optional)
+  ComprehendExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-ComprehendExecutionRole"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: ComprehendAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - comprehend:DetectEntities
+                  - comprehend:DetectKeyPhrases
+                  - comprehend:DetectSentiment
+                  - comprehend:BatchDetectEntities
+                  - comprehend:BatchDetectKeyPhrases
+                  - comprehend:BatchDetectSentiment
+                Resource: "*"
+
+Outputs:
+  # API Gateway
+  FinancasApiUrl:
+    Description: "URL da API Gateway"
+    Value: !Sub "https://${FinancasApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiUrl"
+
+  ExpenseAnalyzerEndpoint:
+    Description: "Endpoint para análise de gastos"
+    Value: !Sub "https://${FinancasApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/analyze-expense"
+    Export:
+      Name: !Sub "${AWS::StackName}-AnalyzeEndpoint"
+
+  MonthlyReportEndpoint:
+    Description: "Endpoint para relatórios mensais"
+    Value: !Sub "https://${FinancasApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/monthly-report"
+    Export:
+      Name: !Sub "${AWS::StackName}-ReportEndpoint"
+
+  # DynamoDB
+  TransactionsTableName:
+    Description: "Nome da tabela DynamoDB de transações"
+    Value: !Ref TransactionsTable
+    Export:
+      Name: !Sub "${AWS::StackName}-TransactionsTable"
+
+  TransactionsTableArn:
+    Description: "ARN da tabela DynamoDB de transações"
+    Value: !GetAtt TransactionsTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-TransactionsTableArn"
+
+  # Lambda Functions
+  ExpenseAnalyzerFunctionArn:
+    Description: "ARN da função de análise de gastos"
+    Value: !GetAtt ExpenseAnalyzerFunction.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-ExpenseAnalyzerFunctionArn"
+
+  MonthlyReportFunctionArn:
+    Description: "ARN da função de relatórios mensais"
+    Value: !GetAtt MonthlyReportFunction.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-MonthlyReportFunctionArn"

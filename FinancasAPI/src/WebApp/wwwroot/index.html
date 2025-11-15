@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💰 Analisador de Gastos Inteligente</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .analyzer-card {
+            grid-column: span 2;
+        }
+
+        @media (max-width: 768px) {
+            .analyzer-card {
+                grid-column: span 1;
+            }
+        }
+
+        .card h2 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .expense-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .expense-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result-card {
+            margin-top: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .result-item {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .result-item .icon {
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        .result-item .label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .result-item .value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .history-item .description {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #2d3748;
+        }
+
+        .history-item .details {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .history-item .amount {
+            float: right;
+            font-weight: bold;
+            color: #e53e3e;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .examples {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .examples h4 {
+            color: #4a5568;
+            margin-bottom: 10px;
+        }
+
+        .example-item {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .example-item:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateX(5px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-item .number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-item .label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .alert {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+
+        .alert-error {
+            background: rgba(254, 178, 178, 0.8);
+            color: #742a2a;
+            border-left: 4px solid #f56565;
+        }
+
+        .alert-success {
+            background: rgba(187, 247, 208, 0.8);
+            color: #22543d;
+            border-left: 4px solid #48bb78;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 Analisador de Gastos Inteligente</h1>
+            <p>Análise automática de gastos usando Inteligência Artificial</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Analisador Principal -->
+            <div class="card analyzer-card">
+                <h2>🤖 Analisar Novo Gasto</h2>
+                
+                <div class="input-group">
+                    <label for="expenseInput">📝 Descreva seu gasto:</label>
+                    <textarea 
+                        id="expenseInput" 
+                        class="expense-input" 
+                        placeholder="Ex: Paguei 37 reais no Uber para o trabalho"
+                        rows="3"
+                    ></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button id="analyzeBtn" class="btn btn-primary">
+                        🔍 Analisar Gasto
+                    </button>
+                    <button id="clearBtn" class="btn btn-secondary">
+                        🗑️ Limpar
+                    </button>
+                </div>
+
+                <div class="examples">
+                    <h4>💡 Exemplos para testar:</h4>
+                    <div class="example-item" onclick="setExample('Paguei 37 reais no Uber para o trabalho')">
+                        🚗 Paguei 37 reais no Uber para o trabalho
+                    </div>
+                    <div class="example-item" onclick="setExample('iFood pizza margherita 89 reais entrega')">
+                        🍕 iFood pizza margherita 89 reais entrega
+                    </div>
+                    <div class="example-item" onclick="setExample('Supermercado Extra compras 156 reais')">
+                        🛒 Supermercado Extra compras 156 reais
+                    </div>
+                    <div class="example-item" onclick="setExample('Farmácia São Paulo remédio 25 reais')">
+                        💊 Farmácia São Paulo remédio 25 reais
+                    </div>
+                    <div class="example-item" onclick="setExample('Netflix assinatura mensal 29,90')">
+                        📺 Netflix assinatura mensal 29,90
+                    </div>
+                </div>
+
+                <!-- Loading -->
+                <div id="loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>🤖 Analisando seu gasto...</p>
+                </div>
+
+                <!-- Resultado -->
+                <div id="result" class="result-card" style="display: none;">
+                    <h3>✅ Resultado da Análise</h3>
+                    <div id="resultContent" class="result-grid">
+                        <!-- Resultado será inserido aqui -->
+                    </div>
+                </div>
+
+                <!-- Alertas -->
+                <div id="alertContainer"></div>
+            </div>
+
+            <!-- Estatísticas -->
+            <div class="card">
+                <h2>📊 Estatísticas</h2>
+                <div id="stats" class="stats-grid">
+                    <div class="stat-item">
+                        <div id="totalExpenses" class="number">0</div>
+                        <div class="label">Total de Gastos</div>
+                    </div>
+                    <div class="stat-item">
+                        <div id="monthlyTotal" class="number">R$ 0</div>
+                        <div class="label">Gasto do Mês</div>
+                    </div>
+                    <div class="stat-item">
+                        <div id="avgExpense" class="number">R$ 0</div>
+                        <div class="label">Média por Gasto</div>
+                    </div>
+                </div>
+
+                <div class="button-group" style="margin-top: 20px;">
+                    <button id="reportBtn" class="btn btn-success">
+                        📈 Ver Relatório Completo
+                    </button>
+                    <button id="clearHistoryBtn" class="btn btn-secondary">
+                        🗑️ Limpar Histórico
+                    </button>
+                </div>
+            </div>
+
+            <!-- Histórico -->
+            <div class="card">
+                <h2>📋 Últimos Gastos</h2>
+                <div id="history">
+                    <p style="text-align: center; color: #666; padding: 20px;">
+                        Nenhum gasto analisado ainda. Comece descrevendo um gasto acima!
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
