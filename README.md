@@ -6,11 +6,14 @@ Transforme descrições como `"Paguei 89 reais na farmácia"` em dados estrutura
 
 ## 🚀 Quick Start
 
-### 1. Rodar Localmente (Recomendado)
+### 1. Clonar o Repositório
 ```bash
-# Navegar para o projeto
-cd C:/Users/Kevin/Desktop/C#AWS
+git clone https://github.com/seu-usuario/financas-api.git
+cd financas-api
+```
 
+### 2. Rodar Localmente (Recomendado)
+```bash
 # Iniciar servidor
 dotnet run --project src/WebApp/WebApp.csproj --urls="http://localhost:5000"
 
@@ -18,10 +21,13 @@ dotnet run --project src/WebApp/WebApp.csproj --urls="http://localhost:5000"
 http://localhost:5000
 ```
 
-### 2. Rodar com AWS DynamoDB (Híbrido)
+### 3. Rodar com AWS DynamoDB (Híbrido)
 ```bash
-# Configurar ambiente para AWS
+# Configurar ambiente para AWS (Linux/Mac)
 export ASPNETCORE_ENVIRONMENT=Production
+
+# Configurar ambiente para AWS (Windows)
+set ASPNETCORE_ENVIRONMENT=Production
 
 # Iniciar com DynamoDB na nuvem
 dotnet run --project src/WebApp/WebApp.csproj --urls="http://localhost:5000"
@@ -44,6 +50,12 @@ dotnet run --project src/WebApp/WebApp.csproj --urls="http://localhost:5000"
   }
 }
 ```
+
+## 📋 Pré-requisitos
+
+- **.NET 8 SDK** - [Download aqui](https://dotnet.microsoft.com/download/dotnet/8.0)
+- **Git** - [Download aqui](https://git-scm.com/)
+- **AWS CLI** (opcional) - [Instruções](https://aws.amazon.com/cli/)
 
 ## 🛠 Tecnologias
 
@@ -156,6 +168,17 @@ dotnet clean
 dotnet build
 ```
 
+## 🚀 Instalação Rápida
+
+```bash
+# Clone e execute
+git clone https://github.com/seu-usuario/financas-api.git
+cd financas-api
+dotnet run --project src/WebApp/WebApp.csproj
+
+# Acesse http://localhost:5000
+```
+
 ## 📈 Roadmap
 
 - ✅ Análise local de gastos
@@ -165,6 +188,14 @@ dotnet build
 - 📱 App mobile
 - 🤖 Bot WhatsApp
 - 📊 Dashboard analytics
+
+## 🤝 Contribuição
+
+1. Fork o projeto
+2. Crie uma branch: `git checkout -b minha-feature`
+3. Commit suas mudanças: `git commit -m 'Adiciona nova feature'`
+4. Push para a branch: `git push origin minha-feature`
+5. Abra um Pull Request
 
 ## 📝 Licença
 
