@@ -1,0 +1,47 @@
+# Build results
+bin/
+obj/
+out/
+
+# Visual Studio / Visual Studio Code
+.vs/
+.vscode/
+*.user
+*.suo
+*.cache
+*.docstates
+
+# AWS
+.aws-sam/
+samconfig.toml
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+logs/
+
+# Runtime files
+*.tmp
+*.temp
+history.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node.js (if any)
+node_modules/
+npm-debug.log*
+
+# Python (if any)
+__pycache__/
+*.pyc
+*.pyo
+
+# AWS deployment artifacts
+*.zip
+packaged-template.yaml

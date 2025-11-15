@@ -9,7 +9,7 @@ Transforme descrições como `"Paguei 89 reais na farmácia"` em dados estrutura
 ### 1. Rodar Localmente (Recomendado)
 ```bash
 # Navegar para o projeto
-cd C:/Users/Kevin/Desktop/C#AWS/FinancasAPI
+cd C:/Users/Kevin/Desktop/C#AWS
 
 # Iniciar servidor
 dotnet run --project src/WebApp/WebApp.csproj --urls="http://localhost:5000"
